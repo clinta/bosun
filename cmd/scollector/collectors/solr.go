@@ -94,12 +94,10 @@ func processSolrDefaultMetricName(mp, m string, t opentsdb.TagSet) string {
 }
 
 func processSolrCoreMetricName(mp, m string, t opentsdb.TagSet) string {
-	mps := strings.SplitN(mp, ".", 5)
-	if len(mps) == 5 {
+	mps := strings.SplitN(mp, ".", 3)
+	if len(mps) == 3 {
 		mp = strings.Join(mps[:2], ".")
-		t["index"] = mps[2]
-		t["shard"] = mps[3]
-		t["replica"] = mps[4]
+		t["core"] = mps[2]
 	}
 	return processSolrNodeMetricName(mp, m, t)
 }
@@ -124,7 +122,7 @@ func addSolrMetrics(m string, t opentsdb.TagSet, mm []interface{}, md *opentsdb.
 		if strings.HasSuffix(mt, "Rate") { // We must filter out rate on this side. Excluding it from the query with type= incorrectly omits jetty counters
 			continue
 		}
-		if mm[i+1].(float64) > math.MaxInt64 {
+		if mmv, ok := mm[i+1].(float64); !ok || mmv > math.MaxInt64 {
 			continue
 		}
 		rt := metadata.Unknown
