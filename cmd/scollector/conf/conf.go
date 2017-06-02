@@ -90,6 +90,8 @@ type Conf struct {
 	LocalListener       string
 	TagOverride         []TagOverride
 	HadoopHost          string
+	HDFSDnHost          string
+	HDFSNnHost          string
 	SolrHost            string
 	Oracles             []Oracle
 	Fastly              []Fastly
