@@ -94,6 +94,8 @@ type Conf struct {
 	TagOverride         []TagOverride
 	HadoopHost          string
 	HbaseRegions        bool
+	HDFSDnHost          string
+	HDFSNnHost          string
 	SolrHost            string
 	Oracles             []Oracle
 	Fastly              []Fastly
