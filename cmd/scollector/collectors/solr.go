@@ -133,6 +133,6 @@ func addSolrMetrics(m string, t opentsdb.TagSet, mm []interface{}, md *opentsdb.
 		if strings.HasSuffix(mt, "_ms") {
 			ut = metadata.MilliSecond
 		}
-		Add(md, m, mm[i+1], t, rt, ut, "")
+		Add(md, m+"."+mt, mm[i+1], t, rt, ut, "")
 	}
 }
