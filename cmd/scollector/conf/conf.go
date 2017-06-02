@@ -97,6 +97,7 @@ type Conf struct {
 	HDFSDnHost          string
 	HDFSNnHost          string
 	HDFSJnHost          string
+	ElasticHost         string
 	SolrHost            string
 	Oracles             []Oracle
 	Fastly              []Fastly
