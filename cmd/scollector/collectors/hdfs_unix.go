@@ -14,6 +14,7 @@ import (
 func init() {
 	hdDnURL := "http://localhost:50075/jmx?qry=Hadoop:service=DataNode,name=*"
 	hdNnURL := "http://localhost:50070/jmx?qry=Hadoop:service=NameNode,name=*"
+	hdJnURL := "http://localhost:8480/jmx?qry=Hadoop:service=JournalNode,name=*"
 	registerInit(func(c *conf.Conf) {
 		if c.HDFSDnHost != "" {
 			hdDnURL = strings.Replace(hdDnURL, "localhost:50075", c.HDFSDnHost, -1)
@@ -23,6 +24,7 @@ func init() {
 		}
 		collectors = append(collectors, &IntervalCollector{F: c_hdfs(hdDnURL), Enable: enableURL(hdDnURL)})
 		collectors = append(collectors, &IntervalCollector{F: c_hdfs(hdNnURL), Enable: enableURL(hdNnURL)})
+		collectors = append(collectors, &IntervalCollector{F: c_hdfs(hdJnURL), Enable: enableURL(hdJnURL)})
 	})
 }
 
