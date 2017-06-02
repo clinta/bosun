@@ -96,6 +96,7 @@ type Conf struct {
 	HbaseRegions        bool
 	HDFSDnHost          string
 	HDFSNnHost          string
+	HDFSJnHost          string
 	SolrHost            string
 	Oracles             []Oracle
 	Fastly              []Fastly

@@ -20,7 +20,10 @@ func init() {
 			hdDnURL = strings.Replace(hdDnURL, "localhost:50075", c.HDFSDnHost, -1)
 		}
 		if c.HDFSNnHost != "" {
-			hdNnURL = strings.Replace(hdNnURL, "localhost:50075", c.HDFSNnHost, -1)
+			hdNnURL = strings.Replace(hdNnURL, "localhost:50070", c.HDFSNnHost, -1)
+		}
+		if c.HDFSJnHost != "" {
+			hdJnURL = strings.Replace(hdJnURL, "localhost:8480", c.HDFSJnHost, -1)
 		}
 		collectors = append(collectors, &IntervalCollector{F: c_hdfs(hdDnURL), Enable: enableURL(hdDnURL)})
 		collectors = append(collectors, &IntervalCollector{F: c_hdfs(hdNnURL), Enable: enableURL(hdNnURL)})
