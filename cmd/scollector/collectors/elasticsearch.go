@@ -17,8 +17,13 @@ import (
 	"bosun.org/slog"
 )
 
+var elasticHost = "localhost:9200"
+
 func init() {
 	registerInit(func(c *conf.Conf) {
+		if c.ElasticHost != "" {
+			elasticHost = c.ElasticHost
+		}
 		for _, filter := range c.ElasticIndexFilters {
 			err := AddElasticIndexFilter(filter)
 			if err != nil {
@@ -30,7 +35,7 @@ func init() {
 				return c_elasticsearch(false)
 			},
 			name:   "elasticsearch",
-			Enable: enableURL("http://localhost:9200/"),
+			Enable: enableURL("http://" + elasticHost),
 		})
 		collectors = append(collectors, &IntervalCollector{
 			F: func() (opentsdb.MultiDataPoint, error) {
@@ -38,7 +43,7 @@ func init() {
 			},
 			name:     "elasticsearch-indices",
 			Interval: time.Minute * 15,
-			Enable:   enableURL("http://localhost:9200/"),
+			Enable:   enableURL("http://" + elasticHost),
 		})
 	})
 }
@@ -239,7 +244,7 @@ func esSkipIndex(index string) bool {
 func esReq(path, query string, v interface{}) error {
 	u := &url.URL{
 		Scheme:   "http",
-		Host:     "localhost:9200",
+		Host:     elasticHost,
 		Path:     path,
 		RawQuery: query,
 	}
