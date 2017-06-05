@@ -99,6 +99,7 @@ type Conf struct {
 	HDFSJnHost          string
 	ElasticHost         string
 	SolrHost            string
+	ZKHost              string
 	Oracles             []Oracle
 	Fastly              []Fastly
 }
