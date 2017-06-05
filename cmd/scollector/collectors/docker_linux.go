@@ -5,12 +5,14 @@ package collectors
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"strconv"
 	"time"
 
 	"bosun.org/cmd/scollector/conf"
 	"bosun.org/metadata"
 	"bosun.org/opentsdb"
+	"bosun.org/slog"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -36,35 +38,54 @@ func enableDocker() bool {
 func c_docker() (opentsdb.MultiDataPoint, error) {
 	containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{Size: true, All: true})
 	if err != nil {
+		slog.Errorf("Error listing containers: %v", err)
 		return nil, err
 	}
 	var md opentsdb.MultiDataPoint
 	Add(&md, "docker.total_containers", len(containers), nil, metadata.Gauge, "containers", "Number of docker containers existing")
 	cStatusCount := make(map[string]int)
+cLoop:
 	for _, c := range containers {
 		ci, err := dockerClient.ContainerInspect(context.Background(), c.ID)
 		if err != nil {
+			slog.Errorf("Error inspecting container: %v", err)
 			continue
 		}
 		cStatusCount[ci.State.Status]++
 		t := make(opentsdb.TagSet)
-		t["name"] = ci.Name
-		t["id"] = ci.ID
-		t["image"] = ci.Image
+		t["name"] = opentsdb.MustReplace(ci.Name, "_")
+		t["id"] = opentsdb.MustReplace(ci.ID, "_")
+		t["image"] = opentsdb.MustReplace(ci.Image, "_")
 		if ci.State.Running {
 			st, err := time.Parse(time.RFC3339Nano, ci.State.StartedAt)
 			if err == nil {
 				ut := time.Now().Sub(st).Nanoseconds()
 				Add(&md, "docker.container.uptime", ut, t, metadata.Gauge, metadata.Nanosecond, "nanoseconds of container uptime")
+			} else {
+				slog.Errorf("Error parsing time: %v", err)
 			}
 		}
 		s, err := dockerClient.ContainerStats(context.Background(), c.ID, false)
 		if err != nil {
+			slog.Errorf("Error getting stats: %v", err)
 			continue
 		}
 		var cs *types.StatsJSON
-		err = json.NewDecoder(s.Body).Decode(cs)
+		dec := json.NewDecoder(s.Body)
+		for err = dec.Decode(&cs); err != nil; err = dec.Decode(&cs) {
+			if err == io.EOF {
+				continue cLoop
+			}
+			dec = json.NewDecoder(io.MultiReader(dec.Buffered(), s.Body))
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		s.Body.Close()
 		if err != nil {
+			slog.Errorf("Error decoding stats: %v", err)
+			continue
+		}
+		if cs.Read.IsZero() {
 			continue
 		}
 		// PID stats
@@ -81,9 +102,12 @@ func c_docker() (opentsdb.MultiDataPoint, error) {
 			"io_time_recursive":          cs.BlkioStats.IoTimeRecursive,
 			"sectors_recursive":          cs.BlkioStats.SectorsRecursive,
 		} {
+			name = "docker.container.blkio." + name
 			for _, b := range bs {
-				t["op"] = b.Op
-				name = "docker.container.blkio." + name
+				t["op"] = opentsdb.MustReplace(b.Op, "_")
+				if t["op"] == "" {
+					delete(t, "op")
+				}
 				AddTS(&md, name+".major", cs.Read.Unix(), b.Major, t, metadata.Unknown, metadata.None, "")
 				AddTS(&md, name+".minor", cs.Read.Unix(), b.Minor, t, metadata.Unknown, metadata.None, "")
 				AddTS(&md, name+".value", cs.Read.Unix(), b.Value, t, metadata.Unknown, metadata.None, "")
