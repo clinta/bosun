@@ -100,6 +100,7 @@ type Conf struct {
 	ElasticHost         string
 	SolrHost            string
 	ZKHost              string
+	RouteCount          bool
 	Oracles             []Oracle
 	Fastly              []Fastly
 }
