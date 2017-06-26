@@ -32,13 +32,13 @@ func enableDocker() bool {
 	if err != nil {
 		return false
 	}
-	return true
+	_, err = c_docker()
+	return err == nil
 }
 
 func c_docker() (opentsdb.MultiDataPoint, error) {
 	containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{Size: true, All: true})
 	if err != nil {
-		slog.Errorf("Error listing containers: %v", err)
 		return nil, err
 	}
 	var md opentsdb.MultiDataPoint

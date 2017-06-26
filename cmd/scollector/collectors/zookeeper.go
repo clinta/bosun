@@ -33,7 +33,6 @@ func c_zookeeper(zkHost string) func() (opentsdb.MultiDataPoint, error) {
 	return func() (opentsdb.MultiDataPoint, error) {
 		c, err := textproto.Dial("tcp", zkHost)
 		if err != nil {
-			slog.Errorf("Error connecting to %v: %v", zkHost, err)
 			return nil, err
 		}
 		defer c.Close()
