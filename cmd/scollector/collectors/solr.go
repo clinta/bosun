@@ -31,8 +31,8 @@ func init() {
 }
 
 type solrMetrics struct {
-	ResponseHeader map[string]interface{} `json:responseHeader`
-	Metrics        []interface{}          `json:"metrics"`
+	ResponseHeader map[string]interface{}                       `json:responseHeader`
+	Metrics        map[string]map[string]map[string]interface{} `json:"metrics"`
 }
 
 func getSolrMetrics(url string, sm *solrMetrics) error {
@@ -53,86 +53,36 @@ func c_solr_metrics() (opentsdb.MultiDataPoint, error) {
 		return nil, err
 	}
 	var md opentsdb.MultiDataPoint
-	for i := 0; i+1 < len(sm.Metrics); i += 2 {
-		var ok bool
-		var mp string
-		if mp, ok = sm.Metrics[i].(string); !ok {
-			continue
+	for k1, v1 := range sm.Metrics {
+		t := make(opentsdb.TagSet)
+		if strings.HasPrefix(k1, "solr.core.") {
+			k1 = "solr.core"
+			t["core"] = strings.Replace(k1, "solr.core.", "", 1)
 		}
-		var processMetricName func(mp, m string, t opentsdb.TagSet) string
-		switch {
-		case strings.HasPrefix(mp, "solr.core"):
-			processMetricName = processSolrCoreMetricName
-		case strings.HasPrefix(mp, "solr.node"):
-			processMetricName = processSolrNodeMetricName
-		default:
-			processMetricName = processSolrDefaultMetricName
-		}
-		var mm []interface{}
-		if mm, ok = sm.Metrics[i+1].([]interface{}); !ok {
-			continue
-		}
-		for ii := 0; ii+1 < len(mm); ii += 2 {
-			var mn string
-			if mn, ok = mm[ii].(string); !ok {
-				continue
+		for k2, v2 := range v1 {
+			for k3, v3 := range v2 {
+				mn := strings.Join([]string{k1, k2, k3}, ".")
+				addSolrMetric(mn, t, v3, &md)
 			}
-			var mmm []interface{}
-			if mmm, ok = mm[ii+1].([]interface{}); !ok {
-				continue
-			}
-			t := make(opentsdb.TagSet)
-			mn = processMetricName(mp, mn, t)
-			addSolrMetrics(mn, t, mmm, &md)
 		}
 	}
 	return md, nil
 }
 
-func processSolrDefaultMetricName(mp, m string, t opentsdb.TagSet) string {
-	return mp + "." + m
-}
-
-func processSolrCoreMetricName(mp, m string, t opentsdb.TagSet) string {
-	mps := strings.SplitN(mp, ".", 3)
-	if len(mps) == 3 {
-		mp = strings.Join(mps[:2], ".")
-		t["core"] = mps[2]
+func addSolrMetric(m string, t opentsdb.TagSet, v interface{}, md *opentsdb.MultiDataPoint) {
+	if strings.HasSuffix(m, "Rate") { // We must filter out rate on this side. Excluding it from the query with type= incorrectly omits jetty counters
+		return
 	}
-	return processSolrNodeMetricName(mp, m, t)
-}
-
-func processSolrNodeMetricName(mp, m string, t opentsdb.TagSet) string {
-	ms := strings.SplitN(m, ".", 3)
-	if len(ms) == 3 {
-		m = ms[2]
-		t["category"] = ms[0]
-		t["path"] = ms[1]
+	if fv, ok := v.(float64); !ok || fv > math.MaxInt64 {
+		return
 	}
-	return processSolrDefaultMetricName(mp, m, t)
-}
-
-func addSolrMetrics(m string, t opentsdb.TagSet, mm []interface{}, md *opentsdb.MultiDataPoint) {
-	for i := 0; i+1 < len(mm); i += 2 {
-		var ok bool
-		var mt string
-		if mt, ok = mm[i].(string); !ok {
-			continue
-		}
-		if strings.HasSuffix(mt, "Rate") { // We must filter out rate on this side. Excluding it from the query with type= incorrectly omits jetty counters
-			continue
-		}
-		if mmv, ok := mm[i+1].(float64); !ok || mmv > math.MaxInt64 {
-			continue
-		}
-		rt := metadata.Unknown
-		if mt == "count" {
-			rt = metadata.Counter
-		}
-		ut := metadata.None
-		if strings.HasSuffix(mt, "_ms") {
-			ut = metadata.MilliSecond
-		}
-		Add(md, m+"."+mt, mm[i+1], t, rt, ut, "")
+	rt := metadata.Unknown
+	if m == "count" {
+		rt = metadata.Counter
 	}
+	ut := metadata.None
+	if strings.HasSuffix(m, "_ms") {
+		ut = metadata.MilliSecond
+	}
+	Add(md, m, v, t, rt, ut, "")
 }
