@@ -70,6 +70,7 @@ func c_solr_metrics() (opentsdb.MultiDataPoint, error) {
 }
 
 func addSolrMetric(m string, t opentsdb.TagSet, v interface{}, md *opentsdb.MultiDataPoint) {
+	m = strings.Replace(m, "/", "_", math.MaxInt64)
 	if strings.HasSuffix(m, "Rate") { // We must filter out rate on this side. Excluding it from the query with type= incorrectly omits jetty counters
 		return
 	}
