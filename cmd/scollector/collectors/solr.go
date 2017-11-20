@@ -31,8 +31,8 @@ func init() {
 }
 
 type solrMetrics struct {
-	ResponseHeader map[string]interface{}                       `json:responseHeader`
-	Metrics        map[string]map[string]map[string]interface{} `json:"metrics"`
+	ResponseHeader map[string]interface{} `json:responseHeader`
+	Metrics        map[string]interface{} `json:"metrics"`
 }
 
 func getSolrMetrics(url string, sm *solrMetrics) error {
@@ -53,20 +53,31 @@ func c_solr_metrics() (opentsdb.MultiDataPoint, error) {
 		return nil, err
 	}
 	var md opentsdb.MultiDataPoint
-	for k1, v1 := range sm.Metrics {
+	addDataPoints("", sm.Metrics, &md)
+	return md, nil
+}
+
+func addDataPoints(prefix string, metrics map[string]interface{}, md *opentsdb.MultiDataPoint) {
+	for k, v := range metrics {
 		t := make(opentsdb.TagSet)
-		if strings.HasPrefix(k1, "solr.core.") {
-			k1 = "solr.core"
-			t["core"] = strings.Replace(k1, "solr.core.", "", 1)
+		if strings.HasPrefix(k, "solr.core.") {
+			t["core"] = strings.Replace(k, "solr.core.", "", 1)
+			k = "solr.core"
 		}
-		for k2, v2 := range v1 {
-			for k3, v3 := range v2 {
-				mn := strings.Join([]string{k1, k2, k3}, ".")
-				addSolrMetric(mn, t, v3, &md)
-			}
+		mn := k
+		if prefix != "" {
+			mn = strings.Join([]string{prefix, k}, ".")
+		}
+
+		switch cv := v.(type) {
+		case map[string]interface{}:
+			addDataPoints(mn, v.(map[string]interface{}), md)
+		case []interface{}:
+			continue
+		default:
+			addSolrMetric(mn, t, cv, md)
 		}
 	}
-	return md, nil
 }
 
 func addSolrMetric(m string, t opentsdb.TagSet, v interface{}, md *opentsdb.MultiDataPoint) {
