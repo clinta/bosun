@@ -68,8 +68,9 @@ func copyTagSet(s opentsdb.TagSet) opentsdb.TagSet {
 
 func addDataPoints(prefix string, metrics map[string]interface{}, md *opentsdb.MultiDataPoint, ts opentsdb.TagSet) {
 	for k, v := range metrics {
-		t := copyTagSet(ts)
+		t := ts
 		if strings.HasPrefix(k, "solr.core.") {
+			t = copyTagSet(ts)
 			t["core"] = strings.Replace(k, "solr.core.", "", 1)
 			k = "solr.core"
 		}
