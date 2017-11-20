@@ -53,13 +53,22 @@ func c_solr_metrics() (opentsdb.MultiDataPoint, error) {
 		return nil, err
 	}
 	var md opentsdb.MultiDataPoint
-	addDataPoints("", sm.Metrics, &md)
+	t := make(opentsdb.TagSet)
+	addDataPoints("", sm.Metrics, &md, t)
 	return md, nil
 }
 
-func addDataPoints(prefix string, metrics map[string]interface{}, md *opentsdb.MultiDataPoint) {
+func copyTagSet(s opentsdb.TagSet) opentsdb.TagSet {
+	t := make(opentsdb.TagSet)
+	for k, v := range s {
+		t[k] = v
+	}
+	return t
+}
+
+func addDataPoints(prefix string, metrics map[string]interface{}, md *opentsdb.MultiDataPoint, ts opentsdb.TagSet) {
 	for k, v := range metrics {
-		t := make(opentsdb.TagSet)
+		t := copyTagSet(ts)
 		if strings.HasPrefix(k, "solr.core.") {
 			t["core"] = strings.Replace(k, "solr.core.", "", 1)
 			k = "solr.core"
@@ -71,7 +80,7 @@ func addDataPoints(prefix string, metrics map[string]interface{}, md *opentsdb.M
 
 		switch cv := v.(type) {
 		case map[string]interface{}:
-			addDataPoints(mn, v.(map[string]interface{}), md)
+			addDataPoints(mn, v.(map[string]interface{}), md, t)
 		case []interface{}:
 			continue
 		default:
