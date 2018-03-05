@@ -306,6 +306,12 @@
 			"revisionTime": "2017-10-13T13:10:59Z"
 		},
 		{
+			"checksumSHA1": "H6BIUD4kD80DAg9VShhOLsdU3uo=",
+			"path": "github.com/clinta/go-ping",
+			"revision": "67550907333ed5ee4e220e0203d319ef28e085ec",
+			"revisionTime": "2018-03-05T21:12:16Z"
+		},
+		{
 			"path": "github.com/coreos/go-systemd/dbus",
 			"revision": "7b2428fec40033549c68f54e26e89e7ca9a9ce31",
 			"revisionTime": "2016-02-02T22:14:25+01:00"
