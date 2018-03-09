@@ -294,6 +294,24 @@
 			"revisionTime": "2017-10-13T13:10:59Z"
 		},
 		{
+			"checksumSHA1": "iCQcYHZeJGtdYR1oIGqBxv/Epp0=",
+			"path": "github.com/clinta/go-multiping/internal/pinger",
+			"revision": "f9892d8e626c5b1e38a54a6805c9495fdefe9f99",
+			"revisionTime": "2018-03-09T20:27:17Z"
+		},
+		{
+			"checksumSHA1": "WtAQWiTlz5wRWiXAKET2e3cJZz8=",
+			"path": "github.com/clinta/go-multiping/packet",
+			"revision": "f9892d8e626c5b1e38a54a6805c9495fdefe9f99",
+			"revisionTime": "2018-03-09T20:27:17Z"
+		},
+		{
+			"checksumSHA1": "rY1QRG6LRoUN/CsnFTlKby0ecto=",
+			"path": "github.com/clinta/go-multiping/pinger",
+			"revision": "f9892d8e626c5b1e38a54a6805c9495fdefe9f99",
+			"revisionTime": "2018-03-09T20:27:17Z"
+		},
+		{
 			"path": "github.com/coreos/go-systemd/dbus",
 			"revision": "7b2428fec40033549c68f54e26e89e7ca9a9ce31",
 			"revisionTime": "2016-02-02T22:14:25+01:00"
