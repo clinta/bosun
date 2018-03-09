@@ -7,7 +7,10 @@ import (
 
 	"bosun.org/metadata"
 	"bosun.org/opentsdb"
-	"github.com/tatsushid/go-fastping"
+	"bosun.org/slog"
+
+	"github.com/clinta/go-multiping/packet"
+	"github.com/clinta/go-multiping/pinger"
 )
 
 type response struct {
@@ -15,37 +18,75 @@ type response struct {
 	rtt  time.Duration
 }
 
+type ICMPCollector struct {
+	host string
+	dst  *pinger.Dst
+
+	TagOverride
+}
+
+func (i *ICMPCollector) Name() string {
+	return fmt.Sprintf("icmp-%s", i.host)
+}
+
+func (c *ICMPCollector) Init() {}
+
+func (i *ICMPCollector) Run(dpchan chan<- *opentsdb.DataPoint, quit <-chan struct{}) {
+	onReply := func(p *packet.Packet) {
+		var md opentsdb.MultiDataPoint
+		AddTS(&md, "ping.rtt", p.Sent.Unix(), float64(p.RTT)/float64(time.Millisecond), opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		AddTS(&md, "ping.timeout", p.Sent.Unix(), 0, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		AddTS(&md, "ping.ttl", p.Sent.Unix(), p.TTL, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		for _, dp := range md {
+			i.ApplyTagOverrides(dp.Tags)
+			dpchan <- dp
+		}
+	}
+
+	onTimeout := func(p *packet.SentPacket) {
+		var md opentsdb.MultiDataPoint
+		AddTS(&md, "ping.timeout", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		for _, dp := range md {
+			i.ApplyTagOverrides(dp.Tags)
+			dpchan <- dp
+		}
+	}
+
+	i.dst.SetOnReply(onReply)
+	i.dst.SetOnTimeout(onTimeout)
+	ech := make(chan error)
+	go func() {
+		ech <- i.dst.Run()
+	}()
+
+	var err error
+	select {
+	case err = <-ech:
+	case <-quit:
+		i.dst.Stop()
+		err = <-ech
+	}
+
+	if err != nil {
+		slog.Errorf("%v: %v", i.Name(), err)
+	}
+}
+
 // ICMP registers an ICMP collector a given host.
 func ICMP(host string) error {
 	if host == "" {
 		return fmt.Errorf("empty ICMP hostname")
 	}
-	collectors = append(collectors, &IntervalCollector{
-		F: func() (opentsdb.MultiDataPoint, error) {
-			return c_icmp(host)
-		},
-		name: fmt.Sprintf("icmp-%s", host),
+	dst, err := pinger.NewDst(host, DefaultFreq, time.Second, 0)
+	if err != nil {
+		return err
+	}
+
+	collectors = append(collectors, &ICMPCollector{
+		host: host,
+		dst:  dst,
 	})
 	return nil
-}
-
-func c_icmp(host string) (opentsdb.MultiDataPoint, error) {
-	var md opentsdb.MultiDataPoint
-	p := fastping.NewPinger()
-	ra, err := net.ResolveIPAddr("ip4:icmp", host)
-	if err != nil {
-		return nil, err
-	}
-	p.AddIPAddr(ra)
-	p.MaxRTT = time.Second * 5
-	timeout := 1
-	p.OnRecv = func(addr *net.IPAddr, t time.Duration) {
-		Add(&md, "ping.rtt", float64(t)/float64(time.Millisecond), opentsdb.TagSet{"dst_host": host}, metadata.Unknown, metadata.None, "")
-		timeout = 0
-	}
-	if err := p.Run(); err != nil {
-		return nil, err
-	}
-	Add(&md, "ping.timeout", timeout, opentsdb.TagSet{"dst_host": host}, metadata.Unknown, metadata.None, "")
-	return md, nil
 }
