@@ -306,10 +306,10 @@
 			"revisionTime": "2018-03-09T20:27:17Z"
 		},
 		{
-			"checksumSHA1": "UbLmXf9Y8b4vVYQd1jF5MJNLBKw=",
+			"checksumSHA1": "gowovIE7FpqGSOnz0uwf2iIhZIs=",
 			"path": "github.com/clinta/go-multiping/pinger",
-			"revision": "1e1dae8597cf8597cc2e3745edc510efb313a2bb",
-			"revisionTime": "2018-03-09T21:30:41Z"
+			"revision": "24feed49c805dce838705339e325cfe0fe8563fd",
+			"revisionTime": "2018-03-12T15:43:14Z"
 		},
 		{
 			"path": "github.com/coreos/go-systemd/dbus",

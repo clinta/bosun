@@ -34,8 +34,9 @@ func (c *ICMPCollector) Init() {}
 func (i *ICMPCollector) Run(dpchan chan<- *opentsdb.DataPoint, quit <-chan struct{}) {
 	onReply := func(p *packet.Packet) {
 		var md opentsdb.MultiDataPoint
-		AddTS(&md, "ping.rtt", p.Sent.Unix(), float64(p.RTT)/float64(time.Millisecond), opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		AddTS(&md, "ping.resolved", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
 		AddTS(&md, "ping.timeout", p.Sent.Unix(), 0, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		AddTS(&md, "ping.rtt", p.Sent.Unix(), float64(p.RTT)/float64(time.Millisecond), opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
 		AddTS(&md, "ping.ttl", p.Sent.Unix(), p.TTL, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
 
 		for _, dp := range md {
@@ -46,6 +47,18 @@ func (i *ICMPCollector) Run(dpchan chan<- *opentsdb.DataPoint, quit <-chan struc
 
 	onTimeout := func(p *packet.SentPacket) {
 		var md opentsdb.MultiDataPoint
+		AddTS(&md, "ping.resolved", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		AddTS(&md, "ping.timeout", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		for _, dp := range md {
+			i.ApplyTagOverrides(dp.Tags)
+			dpchan <- dp
+		}
+	}
+
+	onResolveError := func(p *packet.SentPacket, err error) {
+		var md opentsdb.MultiDataPoint
+		AddTS(&md, "ping.resolved", p.Sent.Unix(), 0, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
 		AddTS(&md, "ping.timeout", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
 
 		for _, dp := range md {
@@ -56,6 +69,7 @@ func (i *ICMPCollector) Run(dpchan chan<- *opentsdb.DataPoint, quit <-chan struc
 
 	i.dst.SetOnReply(onReply)
 	i.dst.SetOnTimeout(onTimeout)
+	i.dst.SetOnResolveError(onResolveError)
 	ech := make(chan error)
 	go func() {
 		ech <- i.dst.Run()
@@ -79,10 +93,7 @@ func ICMP(host string) error {
 	if host == "" {
 		return fmt.Errorf("empty ICMP hostname")
 	}
-	dst, err := pinger.NewDst(host, DefaultFreq, time.Second, 0)
-	if err != nil {
-		return err
-	}
+	dst := pinger.NewDst(host, DefaultFreq, time.Second, 0)
 
 	collectors = append(collectors, &ICMPCollector{
 		host: host,
