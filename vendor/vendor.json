@@ -50,6 +50,48 @@
 			"revisionTime": "2017-02-20T14:12:21-07:00"
 		},
 		{
+			"checksumSHA1": "YQXwLD21HZX+IdgU8xaYV40NV5c=",
+			"path": "github.com/TrilliumIT/go-multiping/internal/listenmap",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "wASpbAgQeQ4NSWE1HqWK86HdKe4=",
+			"path": "github.com/TrilliumIT/go-multiping/internal/listenmap/internal/listener",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "WvYM7w4zD+r1YM9DvkNTP4xGPtw=",
+			"path": "github.com/TrilliumIT/go-multiping/internal/listenmap/internal/messages",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "ED7aUjLMT9cxTKV8LV9/+Vb2Dcg=",
+			"path": "github.com/TrilliumIT/go-multiping/ping",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "bQFm7jMM7rsQliv0BZEkfl/EX9I=",
+			"path": "github.com/TrilliumIT/go-multiping/pinger",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "B7IKLKrIHYyvLU/cNTwo0gu4QZQ=",
+			"path": "github.com/TrilliumIT/go-multiping/pinger/internal/pending",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
+			"checksumSHA1": "kbkDuJXfIyVOn7reaNhSb8CZF0Y=",
+			"path": "github.com/TrilliumIT/go-multiping/pinger/internal/ticker",
+			"revision": "fee20779aca9121a868e9ecf8e9b0dfb9d7a9c75",
+			"revisionTime": "2018-03-19T19:13:55Z"
+		},
+		{
 			"path": "github.com/ajstarks/svgo",
 			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8",
 			"revisionTime": "2015-11-16T20:35:46-05:00"
@@ -292,24 +334,6 @@
 			"path": "github.com/captncraig/easyauth/providers/token/redisStore",
 			"revision": "c6de284138cfb3c428a4870ceec7391fddcec2ef",
 			"revisionTime": "2017-10-13T13:10:59Z"
-		},
-		{
-			"checksumSHA1": "iCQcYHZeJGtdYR1oIGqBxv/Epp0=",
-			"path": "github.com/clinta/go-multiping/internal/pinger",
-			"revision": "f9892d8e626c5b1e38a54a6805c9495fdefe9f99",
-			"revisionTime": "2018-03-09T20:27:17Z"
-		},
-		{
-			"checksumSHA1": "WtAQWiTlz5wRWiXAKET2e3cJZz8=",
-			"path": "github.com/clinta/go-multiping/packet",
-			"revision": "f9892d8e626c5b1e38a54a6805c9495fdefe9f99",
-			"revisionTime": "2018-03-09T20:27:17Z"
-		},
-		{
-			"checksumSHA1": "gowovIE7FpqGSOnz0uwf2iIhZIs=",
-			"path": "github.com/clinta/go-multiping/pinger",
-			"revision": "24feed49c805dce838705339e325cfe0fe8563fd",
-			"revisionTime": "2018-03-12T15:43:14Z"
 		},
 		{
 			"path": "github.com/coreos/go-systemd/dbus",

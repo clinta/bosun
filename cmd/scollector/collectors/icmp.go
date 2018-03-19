@@ -1,6 +1,7 @@
 package collectors
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -9,8 +10,8 @@ import (
 	"bosun.org/opentsdb"
 	"bosun.org/slog"
 
-	"github.com/clinta/go-multiping/packet"
-	"github.com/clinta/go-multiping/pinger"
+	"github.com/TrilliumIT/go-multiping/ping"
+	"github.com/TrilliumIT/go-multiping/pinger"
 )
 
 type response struct {
@@ -20,8 +21,6 @@ type response struct {
 
 type ICMPCollector struct {
 	host string
-	dst  *pinger.Dst
-
 	TagOverride
 }
 
@@ -32,57 +31,50 @@ func (i *ICMPCollector) Name() string {
 func (c *ICMPCollector) Init() {}
 
 func (i *ICMPCollector) Run(dpchan chan<- *opentsdb.DataPoint, quit <-chan struct{}) {
-	onReply := func(p *packet.Packet) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	handle := func(ctx context.Context, p *ping.Ping, err error) {
 		var md opentsdb.MultiDataPoint
-		AddTS(&md, "ping.resolved", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-		AddTS(&md, "ping.timeout", p.Sent.Unix(), 0, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-		AddTS(&md, "ping.rtt", p.Sent.Unix(), float64(p.RTT)/float64(time.Millisecond), opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-		AddTS(&md, "ping.ttl", p.Sent.Unix(), p.TTL, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		_, resolveFailed := err.(*net.DNSError)
+		AddTS(&md, "ping.resolved", p.Sent.Unix(), !resolveFailed, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		timedOut := err != nil
+		AddTS(&md, "ping.timeout", p.Sent.Unix(), timedOut, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+
+		if p.RTT() != 0 {
+			AddTS(&md, "ping.rtt", p.Sent.Unix(), float64(p.RTT())/float64(time.Millisecond), opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		}
+
+		if p.TTL != 0 {
+			AddTS(&md, "ping.ttl", p.Sent.Unix(), p.TTL, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+		}
 
 		for _, dp := range md {
 			i.ApplyTagOverrides(dp.Tags)
-			dpchan <- dp
+			select {
+			case <-ctx.Done():
+				return
+			case dpchan <- dp:
+			}
 		}
 	}
 
-	onTimeout := func(p *packet.SentPacket) {
-		var md opentsdb.MultiDataPoint
-		AddTS(&md, "ping.resolved", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-		AddTS(&md, "ping.timeout", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
+	conf := pinger.DefaultPingConf()
+	conf.Interval = DefaultFreq
+	conf.ReResolveEvery = 1
+	conf.RetryOnResolveError = true
+	conf.RetryOnSendError = true
+	conf.RandDelay = true
 
-		for _, dp := range md {
-			i.ApplyTagOverrides(dp.Tags)
-			dpchan <- dp
-		}
-	}
-
-	onResolveError := func(p *packet.SentPacket, err error) {
-		var md opentsdb.MultiDataPoint
-		AddTS(&md, "ping.resolved", p.Sent.Unix(), 0, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-		AddTS(&md, "ping.timeout", p.Sent.Unix(), 1, opentsdb.TagSet{"dst_host": i.host}, metadata.Unknown, metadata.None, "")
-
-		for _, dp := range md {
-			i.ApplyTagOverrides(dp.Tags)
-			dpchan <- dp
-		}
-	}
-
-	i.dst.SetOnReply(onReply)
-	i.dst.SetOnTimeout(onTimeout)
-	i.dst.SetOnResolveError(onResolveError)
 	ech := make(chan error)
 	go func() {
-		ech <- i.dst.Run()
+		ech <- pinger.PingWithContext(ctx, i.host, handle, conf)
 	}()
 
-	var err error
-	select {
-	case err = <-ech:
-	case <-quit:
-		i.dst.Stop()
-		err = <-ech
-	}
-
+	<-quit
+	cancel()
+	err := <-ech
 	if err != nil {
 		slog.Errorf("%v: %v", i.Name(), err)
 	}
@@ -93,11 +85,9 @@ func ICMP(host string) error {
 	if host == "" {
 		return fmt.Errorf("empty ICMP hostname")
 	}
-	dst := pinger.NewDst(host, DefaultFreq, time.Second, 0)
 
 	collectors = append(collectors, &ICMPCollector{
 		host: host,
-		dst:  dst,
 	})
 	return nil
 }
